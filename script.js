@@ -73,14 +73,12 @@ function saveTasks() {
 }
 
 function clearElement(el) {
-  // полностью удаляем все дочерние узлы (без innerHTML)
   while (el.firstChild) {
     el.removeChild(el.firstChild);
   }
 }
 
 function renderTasks() {
-  // очищаем список
   clearElement(taskList);
 
   let filtered = tasks.slice();
@@ -96,7 +94,6 @@ function renderTasks() {
     filtered = filtered.filter(t => t.title.toLowerCase().includes(query));
   }
 
-  // используем фрагмент для минимизации перерисовок
   const frag = document.createDocumentFragment();
 
   filtered.forEach(task => {
@@ -148,7 +145,6 @@ function renderTasks() {
     li.appendChild(deleteBtn);
 
     li.addEventListener('dragstart', e => {
-      // переносим id задачи как текст
       e.dataTransfer.setData('text/plain', String(task.id));
     });
     li.addEventListener('dragover', e => e.preventDefault());
