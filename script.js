@@ -1,56 +1,67 @@
 let tasks = [];
 
 const header = document.createElement('header');
-document.body.append(header);
+document.body.appendChild(header);
 
 const title = document.createElement('h1');
 title.textContent = 'Список задач';
-header.append(title);
+header.appendChild(title);
 
 const form = document.createElement('form');
 form.className = 'task-form';
-header.append(form);
+header.appendChild(form);
 
 const inputText = document.createElement('input');
 inputText.type = 'text';
 inputText.placeholder = 'Название задачи';
 inputText.required = true;
-form.append(inputText);
+form.appendChild(inputText);
 
 const inputDate = document.createElement('input');
 inputDate.type = 'date';
 inputDate.required = true;
-form.append(inputDate);
+form.appendChild(inputDate);
 
 const addBtn = document.createElement('button');
+addBtn.type = 'submit';
 addBtn.textContent = 'Добавить';
-form.append(addBtn);
+form.appendChild(addBtn);
 
 const filterBar = document.createElement('div');
 filterBar.className = 'filter-bar';
-header.append(filterBar);
+header.appendChild(filterBar);
 
 const selectStatus = document.createElement('select');
-const optAll = new Option('Все', 'all');
-const optDone = new Option('Выполненные', 'done');
-const optTodo = new Option('Невыполненные', 'todo');
-selectStatus.add(optAll);
-selectStatus.add(optDone);
-selectStatus.add(optTodo);
-filterBar.append(selectStatus);
+const optAll = document.createElement('option');
+optAll.value = 'all';
+optAll.textContent = 'Все';
+selectStatus.appendChild(optAll);
+
+const optDone = document.createElement('option');
+optDone.value = 'done';
+optDone.textContent = 'Выполненные';
+selectStatus.appendChild(optDone);
+
+const optTodo = document.createElement('option');
+optTodo.value = 'todo';
+optTodo.textContent = 'Невыполненные';
+selectStatus.appendChild(optTodo);
+
+filterBar.appendChild(selectStatus);
 
 const searchInput = document.createElement('input');
 searchInput.type = 'text';
 searchInput.placeholder = 'Поиск по названию';
-filterBar.append(searchInput);
+filterBar.appendChild(searchInput);
 
 const sortButton = document.createElement('button');
+sortButton.type = 'button';
 sortButton.textContent = 'Сортировать по дате';
-filterBar.append(sortButton);
+filterBar.appendChild(sortButton);
 
 const taskList = document.createElement('ul');
 taskList.className = 'task-list';
-document.body.append(taskList);
+document.body.appendChild(taskList);
 
 function loadTasks() {
   const data = localStorage.getItem('tasks');
@@ -61,19 +72,32 @@ function saveTasks() {
   localStorage.setItem('tasks', JSON.stringify(tasks));
 }
 
+function clearElement(el) {
+  // полностью удаляем все дочерние узлы (без innerHTML)
+  while (el.firstChild) {
+    el.removeChild(el.firstChild);
+  }
+}
+
 function renderTasks() {
-  taskList.innerHTML = '';
-  let filtered = tasks;
+  // очищаем список
+  clearElement(taskList);
+
+  let filtered = tasks.slice();
 
   if (selectStatus.value === 'done') {
     filtered = filtered.filter(t => t.done);
   } else if (selectStatus.value === 'todo') {
     filtered = filtered.filter(t => !t.done);
   }
+
   const query = searchInput.value.trim().toLowerCase();
   if (query !== '') {
     filtered = filtered.filter(t => t.title.toLowerCase().includes(query));
   }
+
+  // используем фрагмент для минимизации перерисовок
+  const frag = document.createDocumentFragment();
 
   filtered.forEach(task => {
     const li = document.createElement('li');
@@ -89,14 +113,15 @@ function renderTasks() {
       saveTasks();
       renderTasks();
     });
-    li.append(doneCheckbox);
+    li.appendChild(doneCheckbox);
 
     const span = document.createElement('span');
     span.className = 'task-title';
     span.textContent = task.title + ' (' + task.date + ')';
-    li.append(span);
+    li.appendChild(span);
 
     const editBtn = document.createElement('button');
+    editBtn.type = 'button';
     editBtn.textContent = 'Редактировать';
     editBtn.addEventListener('click', () => {
       const newTitle = prompt('Новое название задачи:', task.title);
@@ -110,35 +135,40 @@ function renderTasks() {
       saveTasks();
       renderTasks();
     });
-    li.append(editBtn);
+    li.appendChild(editBtn);
 
     const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
     deleteBtn.textContent = 'Удалить';
     deleteBtn.addEventListener('click', () => {
       tasks = tasks.filter(t => t.id !== task.id);
       saveTasks();
       renderTasks();
     });
-    li.append(deleteBtn);
+    li.appendChild(deleteBtn);
 
     li.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('text/plain', task.id);
+      // переносим id задачи как текст
+      e.dataTransfer.setData('text/plain', String(task.id));
     });
     li.addEventListener('dragover', e => e.preventDefault());
     li.addEventListener('drop', e => {
       e.preventDefault();
-      const draggedId = +e.dataTransfer.getData('text/plain');
+      const draggedId = Number(e.dataTransfer.getData('text/plain'));
       const targetId = task.id;
       const fromIndex = tasks.findIndex(t => t.id === draggedId);
       const toIndex = tasks.findIndex(t => t.id === targetId);
+      if (fromIndex === -1 || toIndex === -1) return;
       const [movedTask] = tasks.splice(fromIndex, 1);
       tasks.splice(toIndex, 0, movedTask);
       saveTasks();
       renderTasks();
     });
 
-    taskList.append(li);
+    frag.appendChild(li);
   });
+
+  taskList.appendChild(frag);
 }
 
 form.addEventListener('submit', e => {
